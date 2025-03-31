@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,9 +14,10 @@ import {
   Shield, 
   UserCheck, 
   Car, 
-  Search, 
   Archive,
-  Home
+  Home,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -26,17 +28,17 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
 
   const navItems = [
-    { icon: Home, label: 'Overview', path: '/dashboard' },
+    { icon: Home, label: 'Home', path: '/home' },
     { icon: UserCheck, label: 'Student Authentication', path: '/students' },
     { icon: User, label: 'Visitor Management', path: '/visitors' },
     { icon: Car, label: 'Vehicle Tracking', path: '/vehicles' },
     { icon: Archive, label: 'Lost & Found', path: '/lost-found' },
-    { icon: Search, label: 'Reports', path: '/reports' },
   ];
 
   const handleNavigation = (path: string) => {
@@ -53,18 +55,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top navigation bar */}
-      <header className="bg-card border-b border-border h-16 flex items-center justify-between px-4 z-20">
+      <header className="bg-card border-b border-border h-16 flex items-center justify-between px-4 z-20 backdrop-blur-sm bg-opacity-80">
         <div className="flex items-center">
           <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-2">
             {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </Button>
           <div className="font-semibold text-lg flex items-center">
-            <Shield className="h-6 w-6 text-campus-teal mr-2" />
+            <Shield className="h-6 w-6 text-primary mr-2" />
             <span>Campus Guardian</span>
           </div>
         </div>
         
         <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="transition-colors duration-200">
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </Button>
+          
           <Button variant="ghost" size="icon" className="relative">
             <Bell size={20} />
             <span className="absolute top-0 right-0 h-2 w-2 bg-campus-amber rounded-full"></span>
@@ -83,7 +89,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar navigation */}
         <aside 
-          className={`bg-sidebar text-sidebar-foreground w-64 border-r border-sidebar-border transition-all duration-300 fixed md:static top-16 bottom-0 z-10 ${
+          className={`bg-sidebar text-sidebar-foreground w-64 border-r border-sidebar-border transition-all duration-300 fixed md:static top-16 bottom-0 z-10 backdrop-blur-md ${
             isSidebarOpen ? 'left-0' : '-left-64'
           }`}
         >
