@@ -3,8 +3,9 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StudentAPI, Student } from '@/lib/mock-data';
-import { Camera, UserX, Loader2 } from 'lucide-react';
+import { Camera, UserX, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { motion } from 'framer-motion';
 
 interface FaceRecognitionProps {
   onRecognition?: (student: Student | null) => void;
@@ -22,6 +23,7 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
   const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  const [recognizedStudent, setRecognizedStudent] = useState<Student | null>(null);
   const { toast } = useToast();
 
   // Start camera
@@ -54,6 +56,7 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
       setCameraActive(false);
+      setIsCapturing(false);
     }
   };
 
@@ -96,13 +99,23 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
     // In a real app, you would send this image to a server for processing
     // Here we'll use our mock API
     try {
-      const recognizedStudent = await StudentAPI.searchByFace(imageData);
+      const student = await StudentAPI.searchByFace(imageData);
+      setRecognizedStudent(student);
       
-      if (recognizedStudent) {
+      if (student) {
         toast({
           title: "Student Recognized",
-          description: `Identified as ${recognizedStudent.name}`,
+          description: `Identified as ${student.name}`,
         });
+        
+        // Animation sequence with confetti effect
+        const confetti = document.createElement('div');
+        confetti.className = 'absolute inset-0 flex items-center justify-center z-10';
+        document.body.appendChild(confetti);
+        
+        setTimeout(() => {
+          document.body.removeChild(confetti);
+        }, 2000);
       } else {
         toast({
           title: "No Match Found",
@@ -111,8 +124,12 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
       }
       
       if (onRecognition) {
-        onRecognition(recognizedStudent);
+        onRecognition(student);
       }
+
+      // Stop the camera automatically after recognition
+      stopCamera();
+      
     } catch (error) {
       console.error("Face recognition error:", error);
       toast({
@@ -126,10 +143,6 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
       }
     } finally {
       setIsProcessing(false);
-      if (!captureOnly) {
-        stopCamera();
-        setIsCapturing(false);
-      }
     }
   };
 
@@ -137,10 +150,11 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
   const toggleCamera = () => {
     if (isCapturing) {
       stopCamera();
-      setIsCapturing(false);
     } else {
       startCamera();
       setIsCapturing(true);
+      // Reset recognized student when starting new capture
+      setRecognizedStudent(null);
     }
   };
 
@@ -152,15 +166,33 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
   }, []);
 
   return (
-    <Card className={className}>
+    <Card className={`overflow-hidden ${className}`}>
       <CardContent className="p-4">
         <div className="flex flex-col items-center space-y-4">
-          <div className="relative w-full max-w-md aspect-video bg-gray-800 rounded-lg overflow-hidden">
-            {!isCapturing && !isProcessing && (
+          <motion.div 
+            className="relative w-full max-w-md aspect-video bg-gray-800 rounded-lg overflow-hidden shadow-lg"
+            initial={{ opacity: 0.8, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {!isCapturing && !isProcessing && !recognizedStudent && (
               <div className="flex items-center justify-center h-full bg-gray-900 text-gray-400">
                 <UserX size={48} />
                 <span className="ml-2">Camera inactive</span>
               </div>
+            )}
+            
+            {recognizedStudent && !isCapturing && (
+              <motion.div 
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Sparkles className="mb-2 text-primary h-12 w-12" />
+                <h3 className="text-xl font-bold">{recognizedStudent.name}</h3>
+                <p className="text-primary">Successfully Authenticated</p>
+              </motion.div>
             )}
             
             <video 
@@ -176,32 +208,40 @@ const FaceRecognition: React.FC<FaceRecognitionProps> = ({
                 <Loader2 className="animate-spin text-white" size={48} />
               </div>
             )}
-          </div>
+          </motion.div>
           
           <div className="flex space-x-4">
-            <Button 
-              onClick={toggleCamera}
-              variant={isCapturing ? "destructive" : "default"}
-              disabled={isProcessing}
-            >
-              <Camera className="mr-2 h-4 w-4" />
-              {isCapturing ? "Stop Camera" : "Start Camera"}
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                onClick={toggleCamera}
+                variant={isCapturing ? "destructive" : "default"}
+                disabled={isProcessing}
+                className="relative overflow-hidden group"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 group-hover:translate-x-full transition-transform duration-1000" />
+                <Camera className="mr-2 h-4 w-4" />
+                {isCapturing ? "Stop Camera" : "Start Camera"}
+              </Button>
+            </motion.div>
             
             {isCapturing && (
-              <Button
-                onClick={processFaceRecognition}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Capture & Recognize"
-                )}
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={processFaceRecognition}
+                  disabled={isProcessing}
+                  className="relative overflow-hidden group"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 group-hover:translate-x-full transition-transform duration-1000" />
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Capture & Recognize"
+                  )}
+                </Button>
+              </motion.div>
             )}
           </div>
           

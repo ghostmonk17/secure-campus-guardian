@@ -15,6 +15,7 @@ import VehicleTracking from "./pages/VehicleTracking";
 import LostFound from "./pages/LostFound";
 import ModernHome from "./pages/ModernHome";
 import NotFound from "./pages/NotFound";
+import SecurityManagement from "./pages/SecurityManagement";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/visitors" element={<VisitorManagement />} />
                 <Route path="/vehicles" element={<VehicleTracking />} />
                 <Route path="/lost-found" element={<LostFound />} />
+                <Route path="/security-management" element={<SecurityManagement />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
