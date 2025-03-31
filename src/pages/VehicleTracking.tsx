@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Vehicle, VehicleAPI } from '@/lib/mock-data';
@@ -53,7 +52,6 @@ const VehicleTracking: React.FC = () => {
 
   const onSubmit = async (values: VehicleFormValues) => {
     try {
-      // Ensure all required fields are explicitly assigned
       const newVehicle: Omit<Vehicle, 'id'> = {
         licensePlate: values.licensePlate,
         make: values.make,
@@ -296,7 +294,7 @@ const VehicleTracking: React.FC = () => {
               </p>
             </div>
             <div className="h-12 w-12 bg-campus-red/10 rounded-full flex items-center justify-center">
-              <FlagTriangle className="h-6 w-6 text-campus-red" />
+              <FlagTriangleLeft className="h-6 w-6 text-campus-red" />
             </div>
           </CardContent>
         </Card>
