@@ -62,8 +62,12 @@ const LostFound: React.FC = () => {
 
   const onSubmit = async (values: LostItemFormValues) => {
     try {
+      // Ensure all required fields are explicitly assigned
       const newItem: Omit<LostItem, 'id'> = {
-        ...values,
+        name: values.name,
+        description: values.description,
+        location: values.location,
+        category: values.category,
         dateFound: new Date().toISOString(),
         status: 'unclaimed',
       };

@@ -15,7 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Loader2, Car, Clock, FlagTriangle, PlusCircle } from 'lucide-react';
+import { Loader2, Car, Clock, FlagTriangleLeft, PlusCircle } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 const vehicleFormSchema = z.object({
@@ -53,8 +53,14 @@ const VehicleTracking: React.FC = () => {
 
   const onSubmit = async (values: VehicleFormValues) => {
     try {
+      // Ensure all required fields are explicitly assigned
       const newVehicle: Omit<Vehicle, 'id'> = {
-        ...values,
+        licensePlate: values.licensePlate,
+        make: values.make,
+        model: values.model,
+        color: values.color,
+        owner: values.owner,
+        type: values.type,
         entryTime: new Date().toISOString(),
         status: 'inside',
       };

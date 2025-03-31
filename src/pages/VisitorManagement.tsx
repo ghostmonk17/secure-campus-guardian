@@ -15,7 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Loader2, PlusCircle, Calendar, UserPlus, UserCheck, UserX } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, UserPlus, UserCheck, UserX, Camera } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import FaceRecognition from '@/components/FaceRecognition';
 
@@ -51,10 +51,14 @@ const VisitorManagement: React.FC = () => {
 
   const onSubmit = async (values: VisitorFormValues) => {
     try {
+      // Ensure all required fields are explicitly defined
       const newVisitor: Omit<Visitor, 'id'> = {
-        ...values,
+        name: values.name,
+        purpose: values.purpose,
+        contactInfo: values.contactInfo,
         checkIn: new Date().toISOString(),
         status: 'active',
+        hostName: values.hostName,
       };
       
       await VisitorAPI.addVisitor(newVisitor);

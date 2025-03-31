@@ -51,10 +51,14 @@ const VisitorManagement: React.FC = () => {
 
   const onSubmit = async (values: VisitorFormValues) => {
     try {
+      // Make sure all required properties are included by spreading values first
       const newVisitor: Omit<Visitor, 'id'> = {
-        ...values,
+        name: values.name,
+        purpose: values.purpose,
+        contactInfo: values.contactInfo,
         checkIn: new Date().toISOString(),
         status: 'active',
+        hostName: values.hostName,
       };
       
       await VisitorAPI.addVisitor(newVisitor);
