@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { users, User } from '@/lib/mock-data';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  signup: (email: string, password: string, name: string, role: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,6 +72,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const signup = async (email: string, password: string, name: string, role: string): Promise<boolean> => {
+    setIsLoading(true);
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const existingUser = users.find(u => u.email === email);
+        
+        if (existingUser) {
+          toast({
+            title: "Signup failed",
+            description: "Email already exists",
+            variant: "destructive",
+          });
+          resolve(false);
+        } else {
+          const newUser = {
+            id: String(Date.now()),
+            email,
+            password,
+            name,
+            role,
+            lastLogin: new Date().toISOString()
+          };
+          
+          // In a real app, this would make a network request to create a user in a database
+          // For this demo, we'll just add it to our in-memory array
+          users.push(newUser);
+          
+          toast({
+            title: "User created",
+            description: `${name} has been added as a security personnel`,
+          });
+          
+          resolve(true);
+        }
+        
+        setIsLoading(false);
+      }, 1000);
+    });
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('campusSecurityUser');
@@ -82,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, signup }}>
       {children}
     </AuthContext.Provider>
   );
