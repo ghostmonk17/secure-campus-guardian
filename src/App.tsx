@@ -16,6 +16,7 @@ import LostFound from "./pages/LostFound";
 import ModernHome from "./pages/ModernHome";
 import NotFound from "./pages/NotFound";
 import SecurityManagement from "./pages/SecurityManagement";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +30,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               
               <Route element={<ProtectedRoute />}>

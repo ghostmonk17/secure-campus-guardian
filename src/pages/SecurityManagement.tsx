@@ -1,301 +1,289 @@
-
-import React, { useState } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserCog, Plus, Edit, Trash2, Search, Shield, UserCheck } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { motion } from 'framer-motion';
-import { User } from '@/lib/mock-data';
-import { useToast } from '@/components/ui/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Edit, Trash2, Plus, Loader2 } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast"
+import { Badge } from "@/components/ui/badge"
 
-// Mock security guard data (this would normally come from an API)
-const initialGuards: User[] = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', role: 'security', password: 'password123', lastLogin: '2023-05-15T09:30:00Z' },
-  { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'security', password: 'password123', lastLogin: '2023-05-14T14:45:00Z' },
-  { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'security', password: 'password123', lastLogin: '2023-05-16T08:15:00Z' },
+interface Guard {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: string;
+}
+
+const initialGuards: Guard[] = [
+  {
+    id: '1',
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    role: 'security',
+  },
+  {
+    id: '2',
+    name: 'Jane Smith',
+    email: 'jane.smith@example.com',
+    role: 'security',
+  },
 ];
 
 const SecurityManagement: React.FC = () => {
-  const [guards, setGuards] = useState<User[]>(initialGuards);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [currentGuard, setCurrentGuard] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
+  const [guards, setGuards] = useState<Guard[]>(initialGuards);
+  const [guardForm, setGuardForm] = useState<Guard>({
+    id: '',
     name: '',
     email: '',
     password: '',
-    role: 'guard',
+    role: 'security', // Changed from 'guard' to 'security'
   });
-  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [currentGuard, setCurrentGuard] = useState<Guard | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { signup } = useAuth();
+  const { toast } = useToast()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
+    setGuardForm({
+      ...guardForm,
+      [name]: value,
     });
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      role: 'security',
-    });
-    setCurrentGuard(null);
-    setIsEditMode(false);
   };
 
   const handleAddGuard = () => {
-    setIsDialogOpen(false);
-    
-    if (isEditMode && currentGuard) {
-      // Update existing guard
-      const updatedGuards = guards.map(guard => 
-        guard.id === currentGuard.id 
-          ? { ...guard, name: formData.name, email: formData.email, password: formData.password || guard.password } 
-          : guard
-      );
-      setGuards(updatedGuards);
-      
-      toast({
-        title: "Guard Updated",
-        description: `${formData.name}'s information has been updated successfully.`,
-      });
-    } else {
-      // Add new guard
-      const newGuard: User = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        role: 'guard',
-        lastLogin: '',
-      };
-      
-      setGuards([...guards, newGuard]);
-      
-      toast({
-        title: "Guard Added",
-        description: `${formData.name} has been added to the system.`,
-      });
-    }
-    
-    resetForm();
+    setGuardForm({
+      id: '',
+      name: '',
+      email: '',
+      password: '',
+      role: 'security', // Changed from 'guard' to 'security'
+    });
+    setCurrentGuard(null);
+    setIsEditMode(false);
+    setIsDialogOpen(true);
   };
 
-  const handleEditGuard = (guard: User) => {
-    setCurrentGuard(guard);
-    setFormData({
+  const handleEditGuard = (guard: Guard) => {
+    setGuardForm({
+      id: guard.id,
       name: guard.name,
       email: guard.email,
-      password: '',
+      password: '', // Clear password for security reasons
       role: guard.role,
     });
+    setCurrentGuard(guard);
     setIsEditMode(true);
     setIsDialogOpen(true);
   };
 
-  const handleDeleteGuard = (id: string) => {
-    const updatedGuards = guards.filter(guard => guard.id !== id);
-    setGuards(updatedGuards);
-    
+  const handleDeleteGuard = (guardId: string) => {
+    setGuards(guards.filter((guard) => guard.id !== guardId));
     toast({
-      title: "Guard Removed",
-      description: "The security guard has been removed from the system.",
-      variant: "destructive",
-    });
+      title: "Success",
+      description: "Guard deleted successfully.",
+    })
   };
 
-  const filteredGuards = searchTerm 
-    ? guards.filter(guard => 
-        guard.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        guard.email.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : guards;
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  // Format the last login time
-  const formatLastLogin = (timestamp: string) => {
-    if (!timestamp) return 'Never';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+    try {
+      if (isEditMode && currentGuard) {
+        // Update existing guard
+        setGuards(guards.map(guard =>
+          guard.id === currentGuard.id ? { ...guardForm, id: currentGuard.id } : guard
+        ));
+        toast({
+          title: "Success",
+          description: "Guard updated successfully.",
+        })
+      } else {
+        // Add new guard
+        if (!guardForm.password) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Password is required for new guard.",
+          })
+          return;
+        }
+        const success = await signup(guardForm.email, guardForm.password, guardForm.name, guardForm.role);
+        if (success) {
+          setGuards([...guards, { ...guardForm, id: String(Date.now()) }]);
+          toast({
+            title: "Success",
+            description: "Guard added successfully.",
+          })
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to add guard.",
+          })
+        }
+      }
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error during signup:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add guard.",
+      })
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <DashboardLayout>
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Security Personnel Management</h1>
-            <p className="text-muted-foreground">Manage security guards' access to the system</p>
+    <div className="container mx-auto py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Security Personnel Management</CardTitle>
+          <CardDescription>Manage security guards and their roles.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <Button onClick={handleAddGuard}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Guard
+            </Button>
           </div>
-          
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="mt-4 sm:mt-0">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Security Guard
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{isEditMode ? 'Edit Security Guard' : 'Add New Security Guard'}</DialogTitle>
-                <DialogDescription>
-                  {isEditMode 
-                    ? 'Update the security guard information.' 
-                    : 'Fill in the details to add a new security guard to the system.'}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input 
-                    id="name" 
-                    name="name" 
-                    placeholder="John Doe" 
-                    value={formData.name} 
-                    onChange={handleInputChange} 
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    name="email" 
-                    type="email" 
-                    placeholder="guard@campus.edu" 
-                    value={formData.email} 
-                    onChange={handleInputChange} 
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="password">
-                    {isEditMode ? 'New Password (leave blank to keep current)' : 'Password'}
-                  </Label>
-                  <Input 
-                    id="password" 
-                    name="password" 
-                    type="password" 
-                    placeholder={isEditMode ? '••••••••' : 'Create password'} 
-                    value={formData.password} 
-                    onChange={handleInputChange} 
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select disabled defaultValue="guard">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="guard">Security Guard</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAddGuard}>
-                  {isEditMode ? 'Save Changes' : 'Add Guard'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Security Guards</CardTitle>
-                <CardDescription>Manage all security personnel in the system</CardDescription>
-              </div>
-              
-              <div className="relative mt-4 sm:mt-0">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Table>
+            <TableCaption>A list of your security personnel.</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {guards.map((guard) => (
+                <TableRow key={guard.id}>
+                  <TableCell className="font-medium">{guard.id}</TableCell>
+                  <TableCell>{guard.name}</TableCell>
+                  <TableCell>{guard.email}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{guard.role}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleEditGuard(guard)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteGuard(guard.id)}>
+                      <Trash2 className="mr-2 h-4 w-4 text-campus-red" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? 'Edit Guard' : 'Add Guard'}</DialogTitle>
+            <DialogDescription>
+              {isEditMode ? 'Update guard details.' : 'Create a new guard.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="name" className="text-right">
+                  Name
+                </label>
                 <Input
-                  placeholder="Search guards..."
-                  className="pl-8 w-full sm:w-[200px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  id="name"
+                  name="name"
+                  value={guardForm.name}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                  required
                 />
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="email" className="text-right">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={guardForm.email}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              {!isEditMode && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="password" className="text-right">
+                    Password
+                  </label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={guardForm.password || ''}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                    required={!isEditMode}
+                  />
+                </div>
+              )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableCaption>List of security guards with access to the system</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredGuards.length > 0 ? (
-                  filteredGuards.map((guard) => (
-                    <TableRow key={guard.id}>
-                      <TableCell className="font-medium">{guard.name}</TableCell>
-                      <TableCell>{guard.email}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Shield className="mr-2 h-4 w-4 text-primary" />
-                          <span>Security Guard</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatLastLogin(guard.lastLogin)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditGuard(guard)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteGuard(guard.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+            <div className="flex justify-end">
+              <DialogClose asChild>
+                <Button type="button" variant="secondary" className="mr-2">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No security guards found
-                    </TableCell>
-                  </TableRow>
+                  isEditMode ? 'Update Guard' : 'Add Guard'
                 )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </DashboardLayout>
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
