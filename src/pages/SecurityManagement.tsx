@@ -15,9 +15,9 @@ import { useToast } from '@/components/ui/use-toast';
 
 // Mock security guard data (this would normally come from an API)
 const initialGuards: User[] = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', role: 'guard', password: 'password123', lastLogin: '2023-05-15T09:30:00Z' },
-  { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'guard', password: 'password123', lastLogin: '2023-05-14T14:45:00Z' },
-  { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'guard', password: 'password123', lastLogin: '2023-05-16T08:15:00Z' },
+  { id: '1', name: 'John Doe', email: 'john@example.com', role: 'security', password: 'password123', lastLogin: '2023-05-15T09:30:00Z' },
+  { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'security', password: 'password123', lastLogin: '2023-05-14T14:45:00Z' },
+  { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'security', password: 'password123', lastLogin: '2023-05-16T08:15:00Z' },
 ];
 
 const SecurityManagement: React.FC = () => {
@@ -47,7 +47,7 @@ const SecurityManagement: React.FC = () => {
       name: '',
       email: '',
       password: '',
-      role: 'guard',
+      role: 'security',
     });
     setCurrentGuard(null);
     setIsEditMode(false);
