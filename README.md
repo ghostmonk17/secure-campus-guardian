@@ -1,23 +1,5 @@
 
 
-## Project info
-
-**URL**: https://lovable.dev/projects/b7ee198f-a8af-41af-9a62-af973dcba034
-
-## How can I edit this code?
-
-
-Simply visit the (https://lovable.dev/projects/b7ee198f-a8af-41af-9a62-af973dcba034) and start prompting.
-
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
@@ -56,10 +38,3 @@ This project is built with .
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
-
-Simply open (https://lovable.dev/projects/b7ee198f-a8af-41af-9a62-af973dcba034) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify.
