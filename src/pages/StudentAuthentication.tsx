@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import FaceRecognition from '@/components/FaceRecognition';
@@ -8,6 +7,7 @@ import { Student } from '@/lib/mock-data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
+import { adaptFaceRecognitionData } from '@/lib/utils';
 
 const StudentAuthentication: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -15,6 +15,11 @@ const StudentAuthentication: React.FC = () => {
 
   const handleStudentFound = (student: Student | null) => {
     setSelectedStudent(student);
+  };
+  
+  const handleFaceRecognition = (faceData: any) => {
+    const adaptedData = adaptFaceRecognitionData(faceData);
+    setSelectedStudent(adaptedData);
   };
 
   return (
@@ -49,7 +54,7 @@ const StudentAuthentication: React.FC = () => {
                 <CardContent className="pt-4">
                   <TabsContent value="face" className="mt-0">
                     <FaceRecognition 
-                      onRecognition={handleStudentFound}
+                      onRecognition={handleFaceRecognition}
                     />
                   </TabsContent>
                   

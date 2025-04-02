@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Student } from '@/lib/mock-data';
-import { Calendar, Mail, Phone, School, CalendarClock } from 'lucide-react';
+import { Calendar, Mail, Phone, School, CalendarClock, GraduationCap, Home } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 interface StudentDetailsProps {
@@ -92,6 +91,36 @@ const StudentDetails: React.FC<StudentDetailsProps> = ({ student, className }) =
                 <p>{student.contactInfo.phone}</p>
               </div>
             </div>
+            
+            {(student as any).gpa && (
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">GPA</p>
+                  <p>{(student as any).gpa}</p>
+                </div>
+              </div>
+            )}
+            
+            {(student as any).enrollmentDate && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Enrollment Date</p>
+                  <p>{(student as any).enrollmentDate}</p>
+                </div>
+              </div>
+            )}
+            
+            {(student as any).residenceHall && (
+              <div className="flex items-center gap-2">
+                <Home className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Residence</p>
+                  <p>{(student as any).residenceHall}</p>
+                </div>
+              </div>
+            )}
             
             {student.lastSeen && (
               <div className="flex items-center gap-2 col-span-full">

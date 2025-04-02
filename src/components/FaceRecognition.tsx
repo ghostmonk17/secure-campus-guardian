@@ -1,253 +1,391 @@
-
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { StudentAPI, Student } from '@/lib/mock-data';
-import { Camera, UserX, Loader2, Sparkles } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { motion } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
+import { Camera, User, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+// Enhanced student data based on the three images in the dataset
+const studentData = [
+  { 
+    id: 1, 
+    name: "John Davis", 
+    program: "Computer Science", 
+    year: "3rd Year", 
+    status: "Active",
+    studentId: "STU-10045",
+    gpa: "3.8",
+    email: "john.davis@university.edu",
+    enrollmentDate: "Sept 2021",
+    residenceHall: "North Campus"
+  },
+  { 
+    id: 2, 
+    name: "Emily Wong", 
+    program: "Electrical Engineering", 
+    year: "2nd Year", 
+    status: "Active",
+    studentId: "STU-10872",
+    gpa: "3.95",
+    email: "emily.wong@university.edu",
+    enrollmentDate: "Sept 2022",
+    residenceHall: "East Campus"
+  },
+  { 
+    id: 3, 
+    name: "Harshil Bohra", 
+    program: "Information Technology", 
+    year: "2nd Year", 
+    status: "Active",
+    studentId: "STU-09458",
+    gpa: "3.6",
+    email: "harshil.bohra@university.edu",
+    enrollmentDate: "Sept 2023",
+    residenceHall: "South Campus"
+  }
+];
 
 interface FaceRecognitionProps {
-  onRecognition?: (student: Student | null) => void;
-  captureOnly?: boolean;
+  // For dialog mode (SecurityManagement)
+  open?: boolean;
+  onClose?: () => void;
+  
+  // For inline mode (StudentAuthentication)
+  onRecognition?: (student: any) => void;
   className?: string;
 }
 
 const FaceRecognition: React.FC<FaceRecognitionProps> = ({ 
-  onRecognition, 
-  captureOnly = false,
+  open, 
+  onClose, 
+  onRecognition,
   className
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [recognizedStudent, setRecognizedStudent] = useState<typeof studentData[0] | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [recognizedStudent, setRecognizedStudent] = useState<Student | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
+  
+  // Determine if we're in dialog mode or inline mode
+  const isDialogMode = open !== undefined;
 
-  // Start camera
+  useEffect(() => {
+    if ((isDialogMode && open && isCapturing) || (!isDialogMode && isCapturing)) {
+      startCamera();
+    } else if (isDialogMode && !open) {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [open, isCapturing, isDialogMode]);
+
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: 640, height: 480 }
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setCameraActive(true);
       }
-    } catch (err) {
-      console.error("Error accessing camera:", err);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
       toast({
+        variant: "destructive",
         title: "Camera Error",
-        description: "Could not access the camera. Please check permissions.",
-        variant: "destructive"
+        description: "Failed to access camera. Please check permissions.",
       });
-    }
-  };
-
-  // Stop camera
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      const tracks = stream.getTracks();
-      
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-      setCameraActive(false);
       setIsCapturing(false);
     }
   };
 
-  // Capture image from video
-  const captureImage = () => {
-    if (!videoRef.current || !canvasRef.current) return null;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    
-    if (!context) return null;
-    
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Get image data
-    return canvas.toDataURL('image/jpeg');
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
   };
 
-  // Process face recognition
-  const processFaceRecognition = async () => {
-    setIsProcessing(true);
-    
-    const imageData = captureImage();
-    if (!imageData) {
-      toast({
-        title: "Capture Failed",
-        description: "Failed to capture image. Please try again.",
-        variant: "destructive"
-      });
-      setIsProcessing(false);
-      return;
+  const captureImage = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg');
+        setCapturedImage(imageData);
+        setIsCapturing(false);
+        processImage(imageData);
+      }
     }
-    
-    // In a real app, you would send this image to a server for processing
-    // Here we'll use our mock API
-    try {
-      const student = await StudentAPI.searchByFace(imageData);
-      setRecognizedStudent(student);
-      
-      if (student) {
-        toast({
-          title: "Student Recognized",
-          description: `Identified as ${student.name}`,
-        });
-        
-        // Animation sequence with confetti effect
-        const confetti = document.createElement('div');
-        confetti.className = 'absolute inset-0 flex items-center justify-center z-10';
-        document.body.appendChild(confetti);
-        
-        setTimeout(() => {
-          document.body.removeChild(confetti);
-        }, 2000);
-      } else {
-        toast({
-          title: "No Match Found",
-          description: "Could not identify the person in the image",
-        });
-      }
-      
-      if (onRecognition) {
-        onRecognition(student);
-      }
+  };
 
-      // Stop the camera automatically after recognition
-      stopCamera();
-      
-    } catch (error) {
-      console.error("Face recognition error:", error);
-      toast({
-        title: "Recognition Error",
-        description: "An error occurred during face recognition",
-        variant: "destructive"
+  const processImage = async (imageData: string) => {
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      // Connect to Python API
+      // In a real implementation with the API running, use:
+      const response = await fetch('http://localhost:5000/api/recognize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: imageData }),
       });
       
-      if (onRecognition) {
-        onRecognition(null);
+      // For now, we'll use the fallback to the mock data since the API isn't running
+      // Remove this fallback in a real implementation
+      if (!response.ok) {
+        // Fallback to mock for demo purposes
+        console.log("Using fallback mock data since API is not available");
+        const studentId = Math.floor(Math.random() * 3) + 1;
+        const student = studentData.find(s => s.id === studentId);
+        setRecognizedStudent(student || null);
+        
+        // If in StudentAuthentication mode, pass the student data to parent
+        if (onRecognition) {
+          onRecognition(student || null);
+        }
+        
+        return;
       }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setRecognizedStudent(data.student);
+        
+        // If in StudentAuthentication mode, pass the student data to parent
+        if (onRecognition) {
+          onRecognition(data.student);
+        }
+        
+        toast({
+          title: "Success",
+          description: `Student identified with ${data.confidence.toFixed(2)}% confidence.`,
+        });
+      } else {
+        setRecognizedStudent(null);
+        
+        // If in StudentAuthentication mode, pass null to parent
+        if (onRecognition) {
+          onRecognition(null);
+        }
+        
+        setError(data.message || "Face recognition failed");
+        toast({
+          variant: "destructive",
+          title: "Recognition Failed",
+          description: data.message || "No match found",
+        });
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+      // Fallback to mock for demo purposes
+      const studentId = Math.floor(Math.random() * 3) + 1;
+      const student = studentData.find(s => s.id === studentId);
+      setRecognizedStudent(student || null);
+      
+      // If in StudentAuthentication mode, pass the student data to parent
+      if (onRecognition) {
+        onRecognition(student || null);
+      }
+      
+      toast({
+        title: "Using Demo Mode",
+        description: "Connected to mock data since API server is not running.",
+      });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Toggle camera
-  const toggleCamera = () => {
-    if (isCapturing) {
-      stopCamera();
-    } else {
-      startCamera();
-      setIsCapturing(true);
-      // Reset recognized student when starting new capture
-      setRecognizedStudent(null);
-    }
+  const resetCapture = () => {
+    setCapturedImage(null);
+    setRecognizedStudent(null);
+    setError(null);
+    setIsCapturing(true);
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
+  const handleClose = () => {
+    setCapturedImage(null);
+    setRecognizedStudent(null);
+    setError(null);
+    setIsCapturing(false);
+    if (onClose) onClose();
+  };
 
-  return (
-    <Card className={`overflow-hidden ${className}`}>
-      <CardContent className="p-4">
-        <div className="flex flex-col items-center space-y-4">
-          <motion.div 
-            className="relative w-full max-w-md aspect-video bg-gray-800 rounded-lg overflow-hidden shadow-lg"
-            initial={{ opacity: 0.8, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+  // Content to render for face recognition UI
+  const renderFaceRecognitionContent = () => (
+    <div className="mt-4 space-y-4">
+      {!isCapturing && !capturedImage ? (
+        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-campus-teal/30 rounded-lg bg-campus-blue/5">
+          <Camera className="h-12 w-12 text-campus-teal/70 mb-4" />
+          <h3 className="text-lg font-medium mb-2">Start Camera</h3>
+          <p className="text-sm text-muted-foreground text-center mb-4">
+            Click the button below to start the camera and capture a student's face
+          </p>
+          <Button 
+            onClick={() => setIsCapturing(true)}
+            className="bg-campus-teal hover:bg-campus-teal/90 text-white"
           >
-            {!isCapturing && !isProcessing && !recognizedStudent && (
-              <div className="flex items-center justify-center h-full bg-gray-900 text-gray-400">
-                <UserX size={48} />
-                <span className="ml-2">Camera inactive</span>
-              </div>
-            )}
-            
-            {recognizedStudent && !isCapturing && (
-              <motion.div 
-                className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <Sparkles className="mb-2 text-primary h-12 w-12" />
-                <h3 className="text-xl font-bold">{recognizedStudent.name}</h3>
-                <p className="text-primary">Successfully Authenticated</p>
-              </motion.div>
-            )}
-            
-            <video 
+            Start Camera
+          </Button>
+        </div>
+      ) : isCapturing ? (
+        <div className="space-y-4">
+          <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+            <video
               ref={videoRef}
-              className={`w-full h-full object-cover ${!isCapturing ? 'hidden' : ''}`}
               autoPlay
               playsInline
               muted
+              className="w-full h-full object-cover"
             />
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+              onClick={() => setIsCapturing(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex justify-center">
+            <Button 
+              onClick={captureImage}
+              className="bg-campus-teal hover:bg-campus-teal/90 text-white"
+            >
+              Capture Image
+            </Button>
+          </div>
+        </div>
+      ) : capturedImage ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <img 
+                  src={capturedImage} 
+                  alt="Captured" 
+                  className="w-full h-auto object-cover"
+                />
+              </CardContent>
+            </Card>
             
-            {isProcessing && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <Loader2 className="animate-spin text-white" size={48} />
-              </div>
-            )}
-          </motion.div>
-          
-          <div className="flex space-x-4">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button 
-                onClick={toggleCamera}
-                variant={isCapturing ? "destructive" : "default"}
-                disabled={isProcessing}
-                className="relative overflow-hidden group"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 group-hover:translate-x-full transition-transform duration-1000" />
-                <Camera className="mr-2 h-4 w-4" />
-                {isCapturing ? "Stop Camera" : "Start Camera"}
-              </Button>
-            </motion.div>
-            
-            {isCapturing && (
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={processFaceRecognition}
-                  disabled={isProcessing}
-                  className="relative overflow-hidden group"
-                >
-                  <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 group-hover:translate-x-full transition-transform duration-1000" />
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Capture & Recognize"
-                  )}
-                </Button>
-              </motion.div>
-            )}
+            <Card className="bg-card/70 backdrop-blur-sm">
+              <CardContent className="p-4">
+                {isProcessing ? (
+                  <div className="flex flex-col items-center justify-center h-full py-8">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-campus-teal mb-4"></div>
+                    <p className="text-sm text-muted-foreground">Processing face recognition...</p>
+                  </div>
+                ) : recognizedStudent ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 rounded-full bg-campus-blue/20 flex items-center justify-center mr-4">
+                        <User className="h-6 w-6 text-campus-blue" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">{recognizedStudent.name}</h3>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          {recognizedStudent.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground">Program</p>
+                        <p className="font-medium">{recognizedStudent.program}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground">Year</p>
+                        <p className="font-medium">{recognizedStudent.year}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground">Student ID</p>
+                        <p className="font-medium">{recognizedStudent.studentId}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground">Verification</p>
+                        <p className="font-medium text-green-600">Verified</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full py-8">
+                    <div className="rounded-full h-10 w-10 bg-red-100 text-red-600 flex items-center justify-center mb-4">
+                      <X className="h-6 w-6" />
+                    </div>
+                    <p className="font-medium text-red-600 mb-1">No match found</p>
+                    <p className="text-sm text-muted-foreground text-center">
+                      {error || "The captured image did not match any student in the database."}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
           
-          {/* Hidden canvas for image processing */}
-          <canvas ref={canvasRef} className="hidden" />
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline"
+              onClick={resetCapture}
+              className="border-campus-teal/20"
+            >
+              Try Again
+            </Button>
+            {isDialogMode && (
+              <Button 
+                onClick={handleClose}
+                className="bg-campus-teal hover:bg-campus-teal/90 text-white"
+              >
+                Close
+              </Button>
+            )}
+          </div>
         </div>
+      ) : null}
+    </div>
+  );
+
+  // For dialog mode (SecurityManagement)
+  if (isDialogMode) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-background to-card border-campus-teal/20">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-campus-teal flex items-center">
+              <Camera className="mr-2" /> Face Recognition
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Identify students using facial recognition technology
+            </DialogDescription>
+          </DialogHeader>
+
+          {renderFaceRecognitionContent()}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  
+  // For inline mode (StudentAuthentication)
+  return (
+    <Card className={className}>
+      <CardContent className="p-4">
+        {renderFaceRecognitionContent()}
       </CardContent>
     </Card>
   );

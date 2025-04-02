@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -22,10 +21,11 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Edit, Trash2, Plus, Loader2, Shield, CheckCircle, AlertTriangle, Search } from 'lucide-react';
+import { Edit, Trash2, Plus, Loader2, Shield, CheckCircle, AlertTriangle, Search, Camera } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import FaceRecognition from '@/components/FaceRecognition';
 
 interface Guard {
   id: string;
@@ -65,6 +65,7 @@ const SecurityManagement: React.FC = () => {
   const [currentGuard, setCurrentGuard] = useState<Guard | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFaceRecognitionOpen, setIsFaceRecognitionOpen] = useState(false);
   const { signup } = useAuth();
   const { toast } = useToast();
 
@@ -250,7 +251,14 @@ const SecurityManagement: React.FC = () => {
             className="pl-10 bg-card/50 border-campus-teal/20 focus:border-campus-teal"
           />
         </motion.div>
-        <motion.div variants={itemVariants}>
+        <motion.div variants={itemVariants} className="flex gap-3">
+          <Button 
+            onClick={() => setIsFaceRecognitionOpen(true)} 
+            className="bg-campus-blue hover:bg-campus-blue/90 text-white transition-all duration-300 shadow-md hover:shadow-lg"
+          >
+            <Camera className="mr-2 h-4 w-4" />
+            Face Recognition
+          </Button>
           <Button 
             onClick={handleAddGuard} 
             className="bg-campus-teal hover:bg-campus-teal/90 text-white transition-all duration-300 shadow-md hover:shadow-lg"
@@ -414,6 +422,11 @@ const SecurityManagement: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <FaceRecognition 
+        open={isFaceRecognitionOpen}
+        onClose={() => setIsFaceRecognitionOpen(false)}
+      />
     </motion.div>
   );
 };
